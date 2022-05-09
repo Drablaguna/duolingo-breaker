@@ -3,63 +3,78 @@ A Python Selenium script to automatically answer Duolingo stories
 """
 
 from random import sample
-
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
+# from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium.common.exceptions import NoSuchElementException
+from time import sleep
+
+"""
+TODO refactor print() for logger.info() https://docs.python.org/3/library/logging.html
+import logging
+logger = logging.getLogger("DUO_BREAKER")
+logging.basicConfig(filename='duolingo_breaker_log.log', level=logging.INFO)
+"""
 
 # GLOBAL VARS
-WEBDRIVER = Service("C:/Users/Drablaguna/Desktop/Dev/chromedriver")
-DUOLINGO_URL = "https://www.duolingo.com/"
-with open("C:/Users/Drablaguna/Desktop/creds.txt", "r") as file:
+with open("./creds.txt", "r") as file:
 	creds = [line.strip() for line in file.readlines()]
 USERNAME = creds[0]
 PASSWORD = creds[1]
-CONTINUE_BUTTON_XPATH = "//button[@data-test='stories-player-continue']"
+CONTINUE_BUTTON_XPATH = '//button[@class="_30qMV _2N_A5 _36Vd3 _16r-S _1vzAs _2CoFd _2oGJR _3rxBF"]'
 
 opts = Options()
+# TODO uncomment when finished
 # opts.headless = True
 opts.add_argument("user-agent=Mozilla/5.0")
-browser = webdriver.Chrome(service=WEBDRIVER, options=opts)
+browser = webdriver.Chrome(options=opts)
+# WEBDRIVER = Service("C:/Users/Drablaguna/Desktop/Dev/chromedriver")
+# browser = webdriver.Chrome(service=WEBDRIVER, options=opts)
 
 print("Requesting page...")
-browser.get(DUOLINGO_URL)
-# browser.maximize_window()
-
-WebDriverWait(browser, 120).until(ec.visibility_of_element_located((By.XPATH, '//div[@class="liLLN"]')))
+browser.get("https://www.duolingo.com/")
+browser.maximize_window()
+print("maximized!")
+WebDriverWait(browser, 120).until(ec.visibility_of_element_located((By.XPATH, '//button[@data-test="have-account"]')))
 print("Page loaded!")
 
 
+# ====================================================
+# INSTRUCTION DUMP
+
 def login() -> bool:
 	"""Logs in to the account"""
-	print("Logging in...")
-	browser.find_element(By.XPATH, "//button[@data-test='have-account']").click()
+	try:
+		print("Logging in...")
+		click_element('//button[@data-test="have-account"]')
+		WebDriverWait(browser, 20).until(
+			ec.visibility_of_element_located((By.XPATH, '//input[@data-test="email-input"]')))
+		print("Filling credentials...")
+		email_input = browser.find_element(By.XPATH, '//input[@data-test="email-input"]')
+		email_input.send_keys(USERNAME)
+		pass_input = browser.find_element(By.XPATH, '//input[@data-test="password-input"]')
+		pass_input.send_keys(PASSWORD)
+		click_element('//button[@data-test="register-button"]')
+		print("Awaiting dashboard load...")
+		WebDriverWait(browser, 20).until(ec.visibility_of_element_located((By.XPATH, '//div[@data-test="skill-path"]')))
+		print("LOGGED IN! Dashboard loaded successfully")
+		return True
+	except Exception as e:
+		print(f"An error occured during {login}: {e}")
+	return False
 
-	WebDriverWait(browser, 20).until(
-		ec.visibility_of_element_located((By.XPATH, '//input[@class="_3MNft fs-exclude"]')))
-	print("Filling credentials...")
-	login_inputs = browser.find_elements(By.XPATH, '//input[@class="_3MNft fs-exclude"]')
-	login_inputs[0].send_keys(USERNAME)
-	login_inputs[1].send_keys(PASSWORD)
-	browser.find_element(By.XPATH, "//button[@data-test='register-button']").click()
-	print("LOGGED IN!")
-	print("Awaiting dashboard load...")
-	WebDriverWait(browser, 20).until(ec.visibility_of_element_located((By.XPATH, '//*[@class="_3ZJK8"]')))
-	print("Dashboard loaded successfully!")
-	return True
 
-
-def select_language(lang_to_switch: str = "German") -> str:
-	"""By default switches the language to German, otherwise switches the language to the specified param value"""
+def select_language(lang_to_switch: str = "Portuguese") -> str:
+	"""By default, switches the language to Portuguese, otherwise switches the language to the specified param value"""
 	print(f"Selecting {lang_to_switch} language...")
 	WebDriverWait(browser, 20).until(ec.visibility_of_element_located((By.XPATH, '//div[@data-test="courses-menu"]')))
 	hover_on_element('//div[@data-test="courses-menu"]')
-	lang_list = browser.find_elements(By.XPATH, '//div[contains(@class, "_2WiQc")]')
+	lang_list = browser.find_elements(By.XPATH, '//div[contains(@class, "_3oF3u")]')
 	current_lang = lang_list[0].text
 	if current_lang != lang_to_switch:
 		print(f"Current selected language: {current_lang}")
@@ -72,31 +87,118 @@ def select_language(lang_to_switch: str = "German") -> str:
 	else:
 		print(f"{lang_to_switch} is already selected!")
 	browser.implicitly_wait(10)
-	WebDriverWait(browser, 20).until(ec.visibility_of_element_located((By.XPATH, '//*[@class="_3ZJK8"]')),
+	WebDriverWait(browser, 20).until(ec.visibility_of_element_located((By.XPATH, '//div[@data-test="skill-path"]')),
 	                                 "Skilltree not found")
 	print("Language switched successfully")
 	return current_lang
 
 
+# TODO fix any issues
 def select_story(story_id: int) -> bool:
 	"""Selects a story from the menu"""
-	print("Loading stories tab...")
-	browser.get("https://www.duolingo.com/stories")
-	WebDriverWait(browser, 20).until(ec.visibility_of_element_located((By.XPATH, '//*[@class="X4jDx"]')),
-	                                 "Story elements not found")
-	browser.find_elements(By.XPATH, '//*[@class="X4jDx"]')[story_id].click()
-	WebDriverWait(browser, 20).until(
-		ec.visibility_of_element_located(
-			(
-				By.XPATH,
-				'//a[@data-test="story-start-button"]',
-			)
-		),
-		"Clickable Story element not found"
-	)
-	browser.find_element(By.XPATH, '//a[@data-test="story-start-button"]').click()
+	section_1_xpath = '//h1[contains(text(), "1")]/ancestor::div/ancestor::div/div[@class="_1qELO"]/button'
+	stories_xpath = '//button[@aria-label="Story"]'
+	try:
+		print("Loading stories tab...")
+		browser.get("https://www.duolingo.com/sections")
+		WebDriverWait(browser, 20).until(ec.visibility_of_element_located((By.XPATH, section_1_xpath)),
+		                                 "Story section not found")
+		print("Stories tab loaded, selecting section 1...")
+		sleep(3)  # scroll to top and select section 1
+		browser.execute_script("window.scrollTo(0, 0)")
+		click_element(section_1_xpath)
 
-	return True
+		if story_id == 0:
+			WebDriverWait(browser, 20).until(
+				ec.visibility_of_any_elements_located((By.XPATH, '//button[@aria-label="Lesson"]')),
+				"Story buttons not found")
+			print("Section 1 selected, scrolling and selecting story...")
+			sleep(3)  # scroll to story 0 and select it
+			browser.execute_script("window.scrollTo(0, 2100)")
+			(browser.find_elements(By.XPATH, '//button[@aria-label="Story"]')[0]).click()
+			click_element('//a[@data-test="skill-path-state-passed skill-path-unit-test-2"]')
+
+		print("Story selected, waiting to be loaded...")
+		WebDriverWait(browser, 20).until(
+			ec.visibility_of_any_elements_located((By.XPATH, '//button[@data-test="stories-player-continue"]')),
+			"Story not loaded correctly")
+
+		print("Story loaded correctly!")
+		return True
+	except Exception as e:
+		print(f"An error occured during {select_story}: {e}")
+	return False
+
+
+def click_until_exercise_and_solve(exercise_solution_xpath: str) -> bool:
+	"""Infinite loop to click 'Continue' button until exercise presence located, then solve the exercise"""
+	try:
+		while not click_element(exercise_solution_xpath, 2):
+			click_element(CONTINUE_BUTTON_XPATH, 2)
+		return True
+	except Exception as e:
+		print(f"Error occured at {click_until_exercise_and_solve}: {e}")
+	return False
+
+
+def answer_story_0() -> bool:
+	"""Answers story: The Passport"""
+	sleep(5)
+
+	if not click_until_exercise_and_solve('//span[text()="Cadê"]//ancestor::span//ancestor::button'):
+		return False
+
+	if not click_until_exercise_and_solve(
+			'//span[text()="Yes"]/ancestor::div/ancestor::div/ancestor::li/button[@data-test="stories-choice"]'):
+		return False
+
+	if not click_until_exercise_and_solve(
+			'//span[text()="thinks"]/ancestor::div/ancestor::div/ancestor::li/button[@data-test="stories-choice"]'):
+		return False
+
+	if not click_until_exercise_and_solve('//button[text()="não está aqui"]'):
+		return False
+
+	if not click_until_exercise_and_solve('//span[text()="mão"]//ancestor::span//ancestor::button'):
+		return False
+
+	if not click_until_exercise_and_solve(
+			'//span[text()="hand"]/ancestor::div/ancestor::div/ancestor::li/button[@data-test="stories-choice"]'):
+		return False
+
+	click_element(CONTINUE_BUTTON_XPATH)
+
+	# * Final exercise - Select matching pairs
+	# TODO keep filling workbank
+	story_wordbank = {
+		"where is": "cadê",
+		"wife": "esposa",
+		"hand": "mão",
+		"runs after": "corre atrás de",
+		"my love": "meu amor",
+		"bag": "bolsa",
+		"thank you": "obrigado",
+		"problem": "problema",
+		"in the": "no"
+	}
+
+	story_wordbank = filter_present_words_dict(story_wordbank)
+	select_matching_pairs(story_wordbank)
+
+	click_element(CONTINUE_BUTTON_XPATH)
+	skip_all_post_story_completion()
+
+
+def skip_all_post_story_completion():
+	"""After story completion, presses ENTER key automatically until dashboard is loaded"""
+	while True:  # Keep sending ENTER presses until the execution returns to the main menu
+		try:
+			WebDriverWait(browser, 8).until(
+				ec.visibility_of_element_located((By.XPATH, '//div[@data-test="skill-path"]')),
+				"Continue button not found, yet")
+			break
+		except TimeoutException:
+			browser.find_element(By.XPATH, "//body").send_keys("\ue007")
 
 
 """
@@ -104,18 +206,22 @@ def select_story(story_id: int) -> bool:
 """
 
 
-def click_element(xpath: str, timeout: int = 20) -> None:
-	"""Waits for an element to be clickable, and clicks it, found by XPath"""
+def click_element(xpath: str, timeout: int = 10) -> bool:
+	"""Waits for an element to be clickable, and clicks it, found by XPath. Returns found state"""
 	try:
 		WebDriverWait(browser, timeout).until(ec.element_to_be_clickable((By.XPATH, xpath)),
 		                                      f"WebElement with XPath: {xpath} not found")
 		(browser.find_element(By.XPATH, xpath)).click()
+		return True
 	except TimeoutException:
-		print(f"Time to timeout exceeded, WebElement with XPath: {xpath} not found")
+		print(f"Timeout exceeded, WebElement with XPath: {xpath} not found")
+	except Exception as e:
+		print(f"Error occurred at {click_element}: {e}")
+	return False
 
 
 def hover_on_element(xpath: str) -> None:
-	"""Hovers on an element"""
+	"""Finds an element by XPath and hovers over it"""
 	try:
 		WebDriverWait(browser, 20).until(ec.element_to_be_clickable((By.XPATH, xpath)),
 		                                 f"WebElement with XPath: {xpath} not found, hover was not executed")
@@ -131,13 +237,20 @@ def hover_on_element(xpath: str) -> None:
 """
 
 
-def check_popups():
+def check_popups() -> bool:
 	"""Checks for a pop-up in the main interface and exits it"""
+	# TODO investigate any other popup scenarios
 	try:
-		click_element("//button[@data-test='notification-drawer-no-thanks-button']", 8)
-		print("Pop-up was found, and closed succesfully")
+		# click_element("//button[@data-test='notification-drawer-no-thanks-button']", 8)
+		if click_element('//div[@class="_3nIAG _1v4iu _1Nb-2 _2klp6"]//button'):
+			print("Pop-up was found, and closed succesfully")
+		else:
+			print("No pop up was found")
 	except TimeoutException:
 		print("No pop-ups were found, continuing execution...")
+	except Exception as e:
+		print(f"No pop-ups found, but an error could have occurred... {e}")
+	return False
 
 
 """
@@ -174,119 +287,20 @@ def select_matching_pairs(wordbank: dict) -> None:
 	"""Iterates through a dict and clicks the correct items"""
 	for k, v in wordbank.items():
 		try:
-			click_element(f"//span[@data-test='challenge-tap-token-text'][text()='{k}']/ancestor::li/button", 3)
-			click_element(f"//span[@data-test='challenge-tap-token-text'][text()='{v}']/ancestor::li/button", 3)
+			click_element(
+				f"//span[@data-test='challenge-tap-token-text'][text()='{k}']/ancestor::span/ancestor::button", 5)
+			click_element(
+				f"//span[@data-test='challenge-tap-token-text'][text()='{v}']/ancestor::span/ancestor::button", 5)
 		except Exception as e:
-			print(f"Exercise: [{k} => {v}] not found on this instance, error: {e}")
-
-
-def answer_story_137() -> None:
-	"""Answers story num 137 - Turbulence"""
-	print("Answering story num 137 - Turbulence...")
-
-	WebDriverWait(browser, 20).until(ec.element_to_be_clickable((By.XPATH, CONTINUE_BUTTON_XPATH)))
-
-	click_element(CONTINUE_BUTTON_XPATH)
-	click_element(CONTINUE_BUTTON_XPATH)
-	click_element(CONTINUE_BUTTON_XPATH)
-	click_element(CONTINUE_BUTTON_XPATH)  # * CHECK
-
-	# * Select the missing phrase
-	select_missing_phrase("werde ich berühmt")
-
-	click_element(CONTINUE_BUTTON_XPATH)
-	click_element(CONTINUE_BUTTON_XPATH)
-	click_element(CONTINUE_BUTTON_XPATH)
-	click_element(CONTINUE_BUTTON_XPATH)
-	click_element(CONTINUE_BUTTON_XPATH)
-
-	# * Select correct checkbox
-	click_element("//span[contains(text(),'wackelt')]/ancestor::li/button")
-
-	click_element(CONTINUE_BUTTON_XPATH)
-	click_element(CONTINUE_BUTTON_XPATH)
-	click_element(CONTINUE_BUTTON_XPATH)
-	click_element(CONTINUE_BUTTON_XPATH)
-	click_element(CONTINUE_BUTTON_XPATH)
-
-	# * Select the missing phrase
-	select_missing_phrase("So etwas passiert oft")
-
-	click_element(CONTINUE_BUTTON_XPATH)
-	click_element(CONTINUE_BUTTON_XPATH)
-	click_element(CONTINUE_BUTTON_XPATH)
-	click_element(CONTINUE_BUTTON_XPATH)
-	click_element(CONTINUE_BUTTON_XPATH)
-
-	# * Select correct checkbox
-	click_element("//span[contains(text(),'Angst')]/ancestor::li/button")
-
-	click_element(CONTINUE_BUTTON_XPATH)
-	click_element(CONTINUE_BUTTON_XPATH)
-	click_element(CONTINUE_BUTTON_XPATH)
-	click_element(CONTINUE_BUTTON_XPATH)
-	click_element(CONTINUE_BUTTON_XPATH)
-
-	# * Select correct checkbox
-	click_element("//span[contains(text(),'stirbt')]/ancestor::li/button")
-
-	click_element(CONTINUE_BUTTON_XPATH)
-	click_element(CONTINUE_BUTTON_XPATH)
-	click_element(CONTINUE_BUTTON_XPATH)
-
-	# * Order the sentence
-	order_the_sentence("Plötzlich hören sie den Piloten")
-
-	click_element(CONTINUE_BUTTON_XPATH)
-	click_element(CONTINUE_BUTTON_XPATH)
-	click_element(CONTINUE_BUTTON_XPATH)
-
-	# * Select correct checkbox
-	click_element("//span[contains(text(),'entspannen')]/ancestor::li/button")
-
-	click_element(CONTINUE_BUTTON_XPATH)
-	click_element(CONTINUE_BUTTON_XPATH)
-
-	# * Select correct checkbox
-	click_element("//span[contains(text(),'abgestürzt')]/ancestor::li/button")
-
-	click_element(CONTINUE_BUTTON_XPATH)
-
-	# * Final exercise - Select matching pairs
-	story_wordbank = {
-		"over": "vorbei",
-		"relax": "entspannen",
-		"turbulence": "Turbulenzen",
-		"crashed": "abgestürzt",
-		"not a big deal": "nicht schlimm",
-		"noise": "Geräusch",
-		"plane crash": "Flugzeugabsturz",
-		"plane": "Flugzeug",
-		"never": "nie",
-		"bird": "vogel",
-		"famous": "berühmt"
-	}
-
-	story_wordbank = filter_present_words_dict(story_wordbank)
-	select_matching_pairs(story_wordbank)
-
-	click_element(CONTINUE_BUTTON_XPATH)
-	while True:  # Keep sending ENTER presses until the execution returns to the main menu
-		try:
-			WebDriverWait(browser, 8).until(
-				ec.visibility_of_element_located((By.XPATH, '//div[@data-test="courses-menu"]')),
-				"Continue button not found, yet")
-			break
-		except TimeoutException:
-			browser.find_element(By.XPATH, "//body").send_keys("\ue007")
+			print(f"Exercise: [{k} => {v}] not found on this instance, therefore skipping, error: {e}")
 
 
 def logout() -> bool:
 	"""Logs out of the account"""
 	print("Logging out...")
 	try:
-		WebDriverWait(browser, 20).until(ec.element_to_be_clickable((By.XPATH, "//div[@data-test='profile-dropdown']")))
-		hover_on_element("//div[@data-test='profile-dropdown']")
+		WebDriverWait(browser, 20).until(ec.element_to_be_clickable((By.XPATH, '//span[text()="More"]/ancestor::span')))
+		hover_on_element('//span[text()="More"]/ancestor::span')
 		click_element("//button[@data-test='logout-button']")
 		return True
 	except TimeoutException:
@@ -294,28 +308,23 @@ def logout() -> bool:
 
 
 if __name__ == "__main__":
-	if not login():
-		print("Error on login occurred!")
-	else:
-		# Check for pop-ups and close them
-		check_popups()
+	if login():
+		# check_popups()  # Check for pop-ups and close them
+		select_language("Portuguese")  # Change language to Portuguese, if needed
 
-		selected_language = select_language()
-
-		if selected_language != "German":
-			select_language(selected_language)
-
-		story_to_answer_id = sample([137, 137], 1)[0]
+		story_to_answer_id = sample([0, 1], 1)[0]
 		select_story(story_to_answer_id)
 
-		if story_to_answer_id == 137:
-			answer_story_137()
-		elif story_to_answer_id == 82:
+		if story_to_answer_id == 0:
+			answer_story_0()  # The Passport
+		elif story_to_answer_id == 1:
 			pass
 
-		if logout() is True:
-			print("Duolingo streak mantained succesfully! You smartass!!!")
+		if logout():
+			print("Duolingo streak mantained succesfully!")
 		else:
 			print("Error ocurred on logout")
+	else:
+		print("Error on login occurred!")
 	print("Closing browser...")
 	browser.quit()
