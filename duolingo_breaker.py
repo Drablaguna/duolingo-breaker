@@ -27,6 +27,7 @@ with open("./creds.txt", "r") as file:
 USERNAME = creds[0]
 PASSWORD = creds[1]
 CONTINUE_BUTTON_XPATH = '//button[@class="_30qMV _2N_A5 _36Vd3 _16r-S _1vzAs _2CoFd _2oGJR _3rxBF"]'
+SKILL_TREE_XPATH = '//div[@data-test="skill-path"]'
 
 opts = Options()
 # TODO uncomment when finished
@@ -61,7 +62,7 @@ def login() -> bool:
 		pass_input.send_keys(PASSWORD)
 		click_element('//button[@data-test="register-button"]')
 		print("Awaiting dashboard load...")
-		WebDriverWait(browser, 20).until(ec.visibility_of_element_located((By.XPATH, '//div[@data-test="skill-path"]')))
+		WebDriverWait(browser, 20).until(ec.visibility_of_element_located((By.XPATH, SKILL_TREE_XPATH)))
 		print("LOGGED IN! Dashboard loaded successfully")
 		return True
 	except Exception as e:
@@ -87,7 +88,7 @@ def select_language(lang_to_switch: str = "Portuguese") -> str:
 	else:
 		print(f"{lang_to_switch} is already selected!")
 	browser.implicitly_wait(10)
-	WebDriverWait(browser, 20).until(ec.visibility_of_element_located((By.XPATH, '//div[@data-test="skill-path"]')),
+	WebDriverWait(browser, 20).until(ec.visibility_of_element_located((By.XPATH, SKILL_TREE_XPATH)),
 	                                 "Skilltree not found")
 	print("Language switched successfully")
 	return current_lang
@@ -143,50 +144,56 @@ def click_until_exercise_and_solve(exercise_solution_xpath: str) -> bool:
 
 def answer_story_0() -> bool:
 	"""Answers story: The Passport"""
-	sleep(5)
+	try:
+		sleep(5)
 
-	if not click_until_exercise_and_solve('//span[text()="Cadê"]//ancestor::span//ancestor::button'):
-		return False
+		if not click_until_exercise_and_solve('//span[text()="Cadê"]//ancestor::span//ancestor::button'):
+			return False
 
-	if not click_until_exercise_and_solve(
-			'//span[text()="Yes"]/ancestor::div/ancestor::div/ancestor::li/button[@data-test="stories-choice"]'):
-		return False
+		if not click_until_exercise_and_solve(
+				'//span[text()="Yes"]/ancestor::div/ancestor::div/ancestor::li/button[@data-test="stories-choice"]'):
+			return False
 
-	if not click_until_exercise_and_solve(
-			'//span[text()="thinks"]/ancestor::div/ancestor::div/ancestor::li/button[@data-test="stories-choice"]'):
-		return False
+		if not click_until_exercise_and_solve(
+				'//span[text()="thinks"]/ancestor::div/ancestor::div/ancestor::li/button[@data-test="stories-choice"]'):
+			return False
 
-	if not click_until_exercise_and_solve('//button[text()="não está aqui"]'):
-		return False
+		if not click_until_exercise_and_solve('//button[text()="não está aqui"]'):
+			return False
 
-	if not click_until_exercise_and_solve('//span[text()="mão"]//ancestor::span//ancestor::button'):
-		return False
+		if not click_until_exercise_and_solve('//span[text()="mão"]//ancestor::span//ancestor::button'):
+			return False
 
-	if not click_until_exercise_and_solve(
-			'//span[text()="hand"]/ancestor::div/ancestor::div/ancestor::li/button[@data-test="stories-choice"]'):
-		return False
+		if not click_until_exercise_and_solve(
+				'//span[text()="hand"]/ancestor::div/ancestor::div/ancestor::li/button[@data-test="stories-choice"]'):
+			return False
 
-	click_element(CONTINUE_BUTTON_XPATH)
+		click_element(CONTINUE_BUTTON_XPATH)
 
-	# * Final exercise - Select matching pairs
-	# TODO keep filling workbank
-	story_wordbank = {
-		"where is": "cadê",
-		"wife": "esposa",
-		"hand": "mão",
-		"runs after": "corre atrás de",
-		"my love": "meu amor",
-		"bag": "bolsa",
-		"thank you": "obrigado",
-		"problem": "problema",
-		"in the": "no"
-	}
+		# * Final exercise - Select matching pairs
+		# TODO keep filling workbank
+		story_wordbank = {
+			"where is": "cadê",
+			"wife": "esposa",
+			"hand": "mão",
+			"runs after": "corre atrás de",
+			"my love": "meu amor",
+			"bag": "bolsa",
+			"thank you": "obrigado",
+			"problem": "problema",
+			"in the": "no"
+		}
 
-	story_wordbank = filter_present_words_dict(story_wordbank)
-	select_matching_pairs(story_wordbank)
+		story_wordbank = filter_present_words_dict(story_wordbank)
+		select_matching_pairs(story_wordbank)
 
-	click_element(CONTINUE_BUTTON_XPATH)
-	skip_all_post_story_completion()
+		click_element(CONTINUE_BUTTON_XPATH)
+		skip_all_post_story_completion()
+		
+		return True
+	except Exception as e:
+		print(f"Error occured at {answer_story_0}: {e}")
+	return False
 
 
 def skip_all_post_story_completion():
@@ -194,7 +201,7 @@ def skip_all_post_story_completion():
 	while True:  # Keep sending ENTER presses until the execution returns to the main menu
 		try:
 			WebDriverWait(browser, 8).until(
-				ec.visibility_of_element_located((By.XPATH, '//div[@data-test="skill-path"]')),
+				ec.visibility_of_element_located((By.XPATH, SKILL_TREE_XPATH)),
 				"Continue button not found, yet")
 			break
 		except TimeoutException:
@@ -313,6 +320,7 @@ if __name__ == "__main__":
 		select_language("Portuguese")  # Change language to Portuguese, if needed
 
 		story_to_answer_id = sample([0, 1], 1)[0]
+		story_to_answer_id = 0
 		select_story(story_to_answer_id)
 
 		if story_to_answer_id == 0:
