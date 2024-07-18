@@ -26,7 +26,7 @@ with open("./creds.txt", "r") as file:
 	creds = [line.strip() for line in file.readlines()]
 USERNAME = creds[0]
 PASSWORD = creds[1]
-CONTINUE_BUTTON_XPATH = '//button[@class="_30qMV _2N_A5 _36Vd3 _16r-S _1vzAs _2CoFd _2oGJR _3rxBF"]'
+CONTINUE_BUTTON_XPATH = '//button[contains(text(), "Continue")]'
 SKILL_TREE_XPATH = '//div[@data-test="skill-path"]'
 
 opts = Options()
@@ -97,16 +97,16 @@ def select_language(lang_to_switch: str = "Portuguese") -> str:
 # TODO fix any issues
 def select_story(story_id: int) -> bool:
 	"""Selects a story from the menu"""
-	section_1_xpath = '//h1[contains(text(), "1")]/ancestor::div/ancestor::div/div[@class="_1qELO"]/button'
+	section_1_xpath = '//h1[contains(text(), "1")]/ancestor::div/ancestor::div/div[@class="_1vvWf"]/button'
 	stories_xpath = '//button[@aria-label="Story"]'
 	try:
 		print("Loading stories tab...")
 		browser.get("https://www.duolingo.com/sections")
+		sleep(3)  # scroll to top and select section 1
+		browser.execute_script("window.scrollTo(0, 0)")
 		WebDriverWait(browser, 20).until(ec.visibility_of_element_located((By.XPATH, section_1_xpath)),
 		                                 "Story section not found")
 		print("Stories tab loaded, selecting section 1...")
-		sleep(3)  # scroll to top and select section 1
-		browser.execute_script("window.scrollTo(0, 0)")
 		click_element(section_1_xpath)
 
 		if story_id == 0:
@@ -115,9 +115,9 @@ def select_story(story_id: int) -> bool:
 				"Story buttons not found")
 			print("Section 1 selected, scrolling and selecting story...")
 			sleep(3)  # scroll to story 0 and select it
-			browser.execute_script("window.scrollTo(0, 2100)")
-			(browser.find_elements(By.XPATH, '//button[@aria-label="Story"]')[0]).click()
-			click_element('//a[@data-test="skill-path-state-passed skill-path-unit-test-2"]')
+			browser.execute_script("window.scrollTo(0, 1800)")
+			click_element('//button[@aria-label="Story"]')
+			click_element('//a[contains(text(), "Practice +5 XP")]')
 
 		print("Story selected, waiting to be loaded...")
 		WebDriverWait(browser, 20).until(
@@ -181,7 +181,10 @@ def answer_story_0() -> bool:
 			"bag": "bolsa",
 			"thank you": "obrigado",
 			"problem": "problema",
-			"in the": "no"
+			"in the": "no",
+			"oh no": "ah, não",
+			"passport": "passaporte",
+			"is": "está"
 		}
 
 		story_wordbank = filter_present_words_dict(story_wordbank)
@@ -317,14 +320,17 @@ def logout() -> bool:
 if __name__ == "__main__":
 	if login():
 		# check_popups()  # Check for pop-ups and close them
-		select_language("Portuguese")  # Change language to Portuguese, if needed
+		# select_language("Portuguese")  # Change language to Portuguese, if needed
 
 		story_to_answer_id = sample([0, 1], 1)[0]
 		story_to_answer_id = 0
 		select_story(story_to_answer_id)
 
 		if story_to_answer_id == 0:
-			answer_story_0()  # The Passport
+			if answer_story_0():  # The Passport
+				print("Story answered correctly! Dashboard is now loaded")
+			else:
+				print("Story failed")
 		elif story_to_answer_id == 1:
 			pass
 
