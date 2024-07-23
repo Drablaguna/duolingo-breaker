@@ -94,7 +94,7 @@ def select_language(lang_to_switch: str = "Portuguese") -> str:
 	return current_lang
 
 
-# TODO fix any issues
+# TODO wrap WebDriverWait in logger so TimeOutExceptions get logged properly, check if any extra logic is needed as it returns str or object
 def select_story(story_id: int) -> bool:
 	"""Selects a story from the menu"""
 	section_1_xpath = '//h1[contains(text(), "1")]/ancestor::div/ancestor::div/div[@class="_1vvWf"]/button'
