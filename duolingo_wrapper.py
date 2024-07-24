@@ -21,10 +21,12 @@ def login(username: str, password: str, web_browser: sw.webdriver = BROWSER) -> 
 		sw.click_element(web_browser, XPath.HAVE_ACCOUNT)
 		sw.wait(web_browser, sw.WaitMethod.Visible, XPath.EMAIL_INPUT)
 		print("Filling credentials...")
-		email_input = sw.find_object(BROWSER, XPath.EMAIL_INPUT)
-		email_input.send_keys(username)
-		pass_input = sw.find_object(BROWSER, XPath.PASSWORD_INPUT)
-		pass_input.send_keys(password)
+		# email_input = sw.find_object(BROWSER, XPath.EMAIL_INPUT)
+		# email_input.send_keys(username)
+		sw.fill_form_value(web_browser, XPath.EMAIL_INPUT, username)
+		# pass_input = sw.find_object(BROWSER, XPath.PASSWORD_INPUT)
+		# pass_input.send_keys(password)
+		sw.fill_form_value(web_browser, XPath.PASSWORD_INPUT, password)
 		sw.click_element(web_browser, XPath.REGISTER_BTN)
 		print("Awaiting dashboard load...")
 		sw.wait(web_browser, sw.WaitMethod.Visible, XPath.SKILL_TREE)
@@ -105,11 +107,11 @@ def select_story(story_id: int, web_browser: sw.webdriver = BROWSER) -> bool:
 """
 
 
-def click_until_exercise_and_solve(web_browser: sw.webdriver, exercise_solution_xpath: XPath) -> bool:
+def click_until_exercise_and_solve(web_browser: sw.webdriver, exercise_solution_xpath: XPath, timeout: int = 2) -> bool:
 	"""Infinite loop to click 'Continue' button until exercise presence located, then solve the exercise"""
 	try:
-		while not sw.click_element(web_browser, exercise_solution_xpath, 2):
-			sw.click_element(web_browser, XPath.CONTINUE_BTN, 2)
+		while not sw.click_element(web_browser, exercise_solution_xpath, timeout):
+			sw.click_element(web_browser, XPath.CONTINUE_BTN, timeout)
 		return True
 	except Exception as e:
 		print(f"Error occurred at {click_until_exercise_and_solve}: {e}")
@@ -190,14 +192,15 @@ def check_popups(web_browser: sw.webdriver) -> bool:
 """
 
 
-def skip_all_post_story_completion(web_browser: sw.webdriver):
+def skip_all_post_story_completion(web_browser: sw.webdriver, timeout: int = 8):
 	"""After story completion, presses ENTER key automatically until dashboard is loaded"""
 	while True:  # Keep sending ENTER presses until the execution returns to the main menu
 		try:
-			sw.wait(web_browser, sw.WaitMethod.Visible, XPath.SKILL_TREE, 8, "Continue button not found, yet")
+			sw.wait(web_browser, sw.WaitMethod.Visible, XPath.SKILL_TREE, timeout, "Continue button not found, yet")
 			break
 		except sw.TimeoutException:
-			sw.find_object(web_browser, XPath.MAIN_BODY).send_keys("\ue007")
+			# sw.find_object(web_browser, XPath.MAIN_BODY).send_keys("\ue007")
+			sw.fill_form_value(web_browser, XPath.MAIN_BODY, "\ue007")
 
 
 def select_missing_phrase(web_browser: sw.webdriver, text_to_match: str) -> None:
@@ -226,15 +229,15 @@ def filter_present_words_dict(web_browser: sw.webdriver, wordbank: dict) -> dict
 	return wordbank
 
 
-def select_matching_pairs(web_browser: sw.webdriver, wordbank: dict) -> None:
+def select_matching_pairs(web_browser: sw.webdriver, wordbank: dict, timeout: int = 5) -> None:
 	"""Iterates through a dict and clicks the correct items"""
 	for k, v in wordbank.items():
 		try:
 			sw.click_element(web_browser,
 			                 f"//span[@data-test='challenge-tap-token-text'][text()='{k}']/ancestor::span/ancestor::button",
-			                 5)
+			                 timeout)
 			sw.click_element(web_browser,
 			                 f"//span[@data-test='challenge-tap-token-text'][text()='{v}']/ancestor::span/ancestor::button",
-			                 5)
+			                 timeout)
 		except Exception as e:
 			print(f"Exercise: [{k} => {v}] not found on this instance, therefore skipping, error: {e}")
