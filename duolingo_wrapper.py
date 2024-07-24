@@ -18,14 +18,14 @@ def login(username: str, password: str, web_browser: sw.webdriver = BROWSER) -> 
 	"""Logs in to the account"""
 	try:
 		print("Logging in...")
-		sw.click_element(web_browser, '//button[@data-test="have-account"]')
-		sw.wait(web_browser, sw.WaitMethod.Visible, '//input[@data-test="email-input"]')
+		sw.click_element(web_browser, XPath.HAVE_ACCOUNT)
+		sw.wait(web_browser, sw.WaitMethod.Visible, XPath.EMAIL_INPUT)
 		print("Filling credentials...")
-		email_input = sw.find_object(BROWSER, '//input[@data-test="email-input"]')
+		email_input = sw.find_object(BROWSER, XPath.EMAIL_INPUT)
 		email_input.send_keys(username)
-		pass_input = sw.find_object(BROWSER, '//input[@data-test="password-input"]')
+		pass_input = sw.find_object(BROWSER, XPath.PASSWORD_INPUT)
 		pass_input.send_keys(password)
-		sw.click_element(web_browser, '//button[@data-test="register-button"]')
+		sw.click_element(web_browser, XPath.REGISTER_BTN)
 		print("Awaiting dashboard load...")
 		sw.wait(web_browser, sw.WaitMethod.Visible, XPath.SKILL_TREE)
 		print("LOGGED IN! Dashboard loaded successfully")
@@ -39,9 +39,9 @@ def logout(web_browser: sw.webdriver = BROWSER) -> bool:
 	"""Logs out of the account"""
 	print("Logging out...")
 	try:
-		sw.wait(web_browser, sw.WaitMethod.Clickable, '//span[text()="More"]/ancestor::span')
-		sw.hover_on_element(web_browser, '//span[text()="More"]/ancestor::span')
-		sw.click_element(web_browser, "//button[@data-test='logout-button']")
+		sw.wait(web_browser, sw.WaitMethod.Clickable, XPath.LOGOUT_MORE)
+		sw.hover_on_element(web_browser, XPath.LOGOUT_MORE)
+		sw.click_element(web_browser, XPath.LOGOUT_BTN)
 		web_browser.quit()
 		return True
 	except sw.TimeoutException:
@@ -51,9 +51,9 @@ def logout(web_browser: sw.webdriver = BROWSER) -> bool:
 def select_language(lang_to_switch: str = "Portuguese", web_browser: sw.webdriver = BROWSER) -> str:
 	"""By default, switches the language to Portuguese, otherwise switches the language to the specified param value"""
 	print(f"Selecting {lang_to_switch} language...")
-	sw.wait(web_browser, sw.WaitMethod.Visible, '//div[@data-test="courses-menu"]')
-	sw.hover_on_element(web_browser, '//div[@data-test="courses-menu"]')
-	lang_list = sw.find_multiple_objects(web_browser, '//div[contains(@class, "_3oF3u")]')
+	sw.wait(web_browser, sw.WaitMethod.Visible, XPath.COURSES_MENU)
+	sw.hover_on_element(web_browser, XPath.COURSES_MENU)
+	lang_list = sw.find_multiple_objects(web_browser, XPath.LANG_LIST)
 	current_lang = lang_list[0].text
 	if current_lang != lang_to_switch:
 		print(f"Current selected language: {current_lang}")
@@ -73,27 +73,26 @@ def select_language(lang_to_switch: str = "Portuguese", web_browser: sw.webdrive
 
 def select_story(story_id: int, web_browser: sw.webdriver = BROWSER) -> bool:
 	"""Selects a story from the menu"""
-	section_1_xpath = '//h1[contains(text(), "1")]/ancestor::div/ancestor::div/div[@class="_1vvWf"]/button'
 	# stories_xpath = '//button[@aria-label="Story"]'
 	try:
 		print("Loading stories tab...")
 		web_browser.get("https://www.duolingo.com/sections")
 		sleep(3)  # scroll to top and select section 1
 		web_browser.execute_script("window.scrollTo(0, 0)")
-		sw.wait(web_browser, sw.WaitMethod.Visible, section_1_xpath, msg="Story section not found")
+		sw.wait(web_browser, sw.WaitMethod.Visible, XPath.SECTION_1, msg="Story section not found")
 		print("Stories tab loaded, selecting section 1...")
-		sw.click_element(web_browser, section_1_xpath)
+		sw.click_element(web_browser, XPath.SECTION_1)
 
 		if story_id == 0:
-			sw.wait(web_browser, sw.WaitMethod.AnyVisible, '//button[@aria-label="Lesson"]')
+			sw.wait(web_browser, sw.WaitMethod.AnyVisible, XPath.STORY_LESSON)
 			print("Section 1 selected, scrolling and selecting story...")
 			sleep(3)  # scroll to story 0 and select it
 			web_browser.execute_script("window.scrollTo(0, 1800)")
-			sw.click_element(web_browser, '//button[@aria-label="Story"]')
-			sw.click_element(web_browser, '//a[contains(text(), "Practice +5 XP")]')
+			sw.click_element(web_browser, XPath.STORY_BTN)
+			sw.click_element(web_browser, XPath.PRACTICE_BTN)
 
 		print("Story selected, waiting to be loaded...")
-		sw.wait(web_browser, sw.WaitMethod.AnyVisible, '//button[@data-test="stories-player-continue"]')
+		sw.wait(web_browser, sw.WaitMethod.AnyVisible, XPath.STORY_CONTINUE_BEGIN)
 		print("Story loaded correctly!")
 		return True
 	except Exception as e:
@@ -122,25 +121,22 @@ def answer_story_0(web_browser: sw.webdriver = BROWSER) -> bool:
 	try:
 		sleep(5)
 
-		if not click_until_exercise_and_solve(web_browser, '//span[text()="Cadê"]//ancestor::span//ancestor::button'):
+		if not click_until_exercise_and_solve(web_browser, XPath.PASSPORT_1):
 			return False
 
-		if not click_until_exercise_and_solve(web_browser,
-		                                      '//span[text()="Yes"]/ancestor::div/ancestor::div/ancestor::li/button[@data-test="stories-choice"]'):
+		if not click_until_exercise_and_solve(web_browser, XPath.PASSPORT_2):
 			return False
 
-		if not click_until_exercise_and_solve(web_browser,
-		                                      '//span[text()="thinks"]/ancestor::div/ancestor::div/ancestor::li/button[@data-test="stories-choice"]'):
+		if not click_until_exercise_and_solve(web_browser, XPath.PASSPORT_3):
 			return False
 
-		if not click_until_exercise_and_solve(web_browser, '//button[text()="não está aqui"]'):
+		if not click_until_exercise_and_solve(web_browser, XPath.PASSPORT_4):
 			return False
 
-		if not click_until_exercise_and_solve(web_browser, '//span[text()="mão"]//ancestor::span//ancestor::button'):
+		if not click_until_exercise_and_solve(web_browser, XPath.PASSPORT_5):
 			return False
 
-		if not click_until_exercise_and_solve(web_browser,
-		                                      '//span[text()="hand"]/ancestor::div/ancestor::div/ancestor::li/button[@data-test="stories-choice"]'):
+		if not click_until_exercise_and_solve(web_browser, XPath.PASSPORT_6):
 			return False
 
 		sw.click_element(web_browser, XPath.CONTINUE_BTN)
@@ -178,7 +174,7 @@ def check_popups(web_browser: sw.webdriver) -> bool:
 	"""Checks for a pop-up in the main interface and exits it"""
 	# TODO investigate any other popup scenarios
 	try:
-		if sw.click_element(web_browser, '//div[@class="_3nIAG _1v4iu _1Nb-2 _2klp6"]//button'):
+		if sw.click_element(web_browser, XPath.POPUP_CLOSE_1):
 			print("Pop-up was found, and closed succesfully")
 		else:
 			print("No pop up was found")
@@ -201,12 +197,12 @@ def skip_all_post_story_completion(web_browser: sw.webdriver):
 			sw.wait(web_browser, sw.WaitMethod.Visible, XPath.SKILL_TREE, 8, "Continue button not found, yet")
 			break
 		except sw.TimeoutException:
-			sw.find_object(web_browser, "//body").send_keys("\ue007")
+			sw.find_object(web_browser, XPath.MAIN_BODY).send_keys("\ue007")
 
 
 def select_missing_phrase(web_browser: sw.webdriver, text_to_match: str) -> None:
 	"""Selects the missing phrase from a list of button options"""
-	for web_elem in sw.find_multiple_objects(web_browser, '//button[@data-test="stories-choice"]'):
+	for web_elem in sw.find_multiple_objects(web_browser, XPath.STORIES_CHOICE):
 		if web_elem.text == text_to_match:
 			web_elem.click()
 
@@ -221,7 +217,7 @@ def filter_present_words_dict(web_browser: sw.webdriver, wordbank: dict) -> dict
 	"""Filter the story wordbank dict with the present words in the exercise"""
 
 	present_words = [span.text for span in
-	                 sw.find_multiple_objects(web_browser, '//span[@data-test="challenge-tap-token-text"]')]
+	                 sw.find_multiple_objects(web_browser, XPath.WORD_TOKEN)]
 	# Filter the dictionary with the words present in the exercise
 	present_words = list(filter(lambda word: word in wordbank.keys(), present_words))
 
