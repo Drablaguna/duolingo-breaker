@@ -51,7 +51,7 @@ def find_multiple_objects(web_browser: webdriver, xpath: XPath | str):
 
 def fill_form_value(web_browser: webdriver, xpath: XPath | str, value: str):
 	"""Wrapper for find_element.send_keys()"""
-	web_browser.find_element(By.XPATH, xpath).send_keys(value)
+	return web_browser.find_element(By.XPATH, xpath).send_keys(value)
 
 
 def wait(web_browser: webdriver, method: WaitMethod, xpath: XPath | str, timeout: int = 20, msg: str = "Error"):
@@ -59,11 +59,11 @@ def wait(web_browser: webdriver, method: WaitMethod, xpath: XPath | str, timeout
 	# TODO define if error msg for WebDriverWait should be present or handled different, investigate this
 	# TODO wrap WebDriverWait in logger so TimeoutExceptions get logged properly
 	if method == "visible":
-		WebDriverWait(web_browser, timeout).until(ec.visibility_of_element_located((By.XPATH, xpath)), msg)
+		return WebDriverWait(web_browser, timeout).until(ec.visibility_of_element_located((By.XPATH, xpath)), msg)
 	elif method == "any_visible":
-		WebDriverWait(web_browser, timeout).until(ec.visibility_of_any_elements_located((By.XPATH, xpath)), msg)
+		return WebDriverWait(web_browser, timeout).until(ec.visibility_of_any_elements_located((By.XPATH, xpath)), msg)
 	elif method == "clickable":
-		WebDriverWait(web_browser, timeout).until(ec.element_to_be_clickable((By.XPATH, xpath)), msg)
+		return WebDriverWait(web_browser, timeout).until(ec.element_to_be_clickable((By.XPATH, xpath)), msg)
 
 
 def click_element(web_browser: webdriver, xpath: XPath | str, timeout: int = 10) -> bool:
